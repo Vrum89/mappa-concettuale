@@ -9,6 +9,7 @@ export interface ConceptNodeData {
 export interface ConceptEdgeData {
   label?: string;
   isEditing: boolean;
+  labelOffset?: { x: number; y: number };
 }
 
 export type ConceptNode = Node<ConceptNodeData>;

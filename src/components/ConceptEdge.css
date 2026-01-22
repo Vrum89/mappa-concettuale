@@ -1,5 +1,8 @@
 .edge-label-container {
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .edge-label {
@@ -28,6 +31,12 @@
   color: #333333;
 }
 
+/* Feedback visivo quando label è spostata */
+.edge-label.custom-position {
+  border-color: #2196F3;
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+}
+
 .edge-input {
   background: white;
   border: 2px solid #2196F3;
@@ -37,6 +46,55 @@
   outline: none;
   min-width: 80px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Bottone delete edge */
+.edge-delete-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #f44336;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  line-height: 1;
+}
+
+.edge-delete-btn:hover {
+  background: #d32f2f;
+  transform: scale(1.1);
+}
+
+/* Bottone ricentra */
+.edge-recenter-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #2196F3;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  line-height: 1;
+}
+
+.edge-recenter-btn:hover {
+  background: #1976D2;
+  transform: scale(1.1);
 }
 
 .react-flow__edge-path {
