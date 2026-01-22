@@ -4,8 +4,6 @@ import ReactFlow, {
   Controls,
   MiniMap,
   Connection,
-  useNodesState,
-  useEdgesState,
   BackgroundVariant,
   ReactFlowProvider,
 } from 'reactflow';
@@ -28,48 +26,81 @@ const edgeTypes = {
 };
 
 function FlowCanvas() {
-  const { nodes: storeNodes, edges: storeEdges, setNodes, setEdges } = useStore();
-  const [nodes, , onNodesChange] = useNodesState(storeNodes);
-  const [edges, , onEdgesChange] = useEdgesState(storeEdges);
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    updateNode,
+    deleteNode
+  } = useStore();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showMapManager, setShowMapManager] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const { undo, redo, canUndo, canRedo, updateNode, deleteNode } = useStore();
+  // Handle node changes from ReactFlow (like drag)
+  const onNodesChange = useCallback(
+    (changes: any[]) => {
+      const updatedNodes = [...nodes];
+      let hasChanges = false;
 
-  // Sync local state with store
-  useEffect(() => {
-    onNodesChange(
-      storeNodes.map((node) => ({
-        item: node,
-        type: 'reset',
-        id: node.id,
-      }))
-    );
-  }, [storeNodes, onNodesChange]);
+      changes.forEach((change) => {
+        if (change.type === 'position' && change.dragging === false) {
+          // Position update after drag ends
+          const nodeIndex = updatedNodes.findIndex((n) => n.id === change.id);
+          if (nodeIndex !== -1 && change.position) {
+            updatedNodes[nodeIndex] = {
+              ...updatedNodes[nodeIndex],
+              position: change.position,
+            };
+            hasChanges = true;
+          }
+        } else if (change.type === 'position' && change.position) {
+          // Position update during drag
+          const nodeIndex = updatedNodes.findIndex((n) => n.id === change.id);
+          if (nodeIndex !== -1) {
+            updatedNodes[nodeIndex] = {
+              ...updatedNodes[nodeIndex],
+              position: change.position,
+            };
+            hasChanges = true;
+          }
+        }
+      });
 
-  useEffect(() => {
-    onEdgesChange(
-      storeEdges.map((edge) => ({
-        item: edge,
-        type: 'reset',
-        id: edge.id,
-      }))
-    );
-  }, [storeEdges, onEdgesChange]);
+      if (hasChanges) {
+        setNodes(updatedNodes);
+      }
+    },
+    [nodes, setNodes]
+  );
 
-  // Update store when nodes/edges change
-  useEffect(() => {
-    if (JSON.stringify(nodes) !== JSON.stringify(storeNodes)) {
-      setNodes(nodes);
-    }
-  }, [nodes, storeNodes, setNodes]);
+  // Handle edge changes from ReactFlow
+  const onEdgesChange = useCallback(
+    (changes: any[]) => {
+      const updatedEdges = [...edges];
+      let hasChanges = false;
 
-  useEffect(() => {
-    if (JSON.stringify(edges) !== JSON.stringify(storeEdges)) {
-      setEdges(edges);
-    }
-  }, [edges, storeEdges, setEdges]);
+      changes.forEach((change) => {
+        if (change.type === 'remove') {
+          const edgeIndex = updatedEdges.findIndex((e) => e.id === change.id);
+          if (edgeIndex !== -1) {
+            updatedEdges.splice(edgeIndex, 1);
+            hasChanges = true;
+          }
+        }
+      });
+
+      if (hasChanges) {
+        setEdges(updatedEdges);
+      }
+    },
+    [edges, setEdges]
+  );
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -82,9 +113,9 @@ function FlowCanvas() {
         type: 'concept',
         data: { label: '', isEditing: false },
       };
-      onEdgesChange([{ item: newEdge, type: 'add' }]);
+      useStore.getState().addEdge(newEdge);
     },
-    [onEdgesChange]
+    []
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
@@ -141,10 +172,10 @@ function FlowCanvas() {
       if (e.key === 'Tab' && selectedNodeId) {
         e.preventDefault();
         const newId = `node_${Date.now()}`;
-        const currentNode = storeNodes.find((n) => n.id === selectedNodeId);
+        const currentNode = nodes.find((n) => n.id === selectedNodeId);
         if (!currentNode) return;
 
-        const childrenCount = storeNodes.filter(
+        const childrenCount = nodes.filter(
           (n) => n.data.parentId === selectedNodeId
         ).length;
         const offsetY = 150;
@@ -188,7 +219,7 @@ function FlowCanvas() {
           return;
         }
 
-        const hasChildren = storeNodes.some(
+        const hasChildren = nodes.some(
           (node) => node.data.parentId === selectedNodeId
         );
         if (hasChildren) {
@@ -206,12 +237,12 @@ function FlowCanvas() {
       if (e.key === 'Escape') {
         setSelectedNodeId(null);
         // Cancel all editing
-        storeNodes.forEach((node) => {
+        nodes.forEach((node) => {
           if (node.data.isEditing) {
             updateNode(node.id, { isEditing: false });
           }
         });
-        storeEdges.forEach((edge) => {
+        edges.forEach((edge) => {
           if (edge.data?.isEditing) {
             useStore.getState().updateEdge(edge.id, { isEditing: false });
           }
@@ -223,8 +254,8 @@ function FlowCanvas() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     selectedNodeId,
-    storeNodes,
-    storeEdges,
+    nodes,
+    edges,
     undo,
     redo,
     canUndo,
