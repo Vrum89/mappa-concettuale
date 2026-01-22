@@ -70,6 +70,21 @@ export const useStore = create<AppState>((set, get) => ({
     get().pushHistory();
   },
 
+  deleteNodeOnly: (id) => {
+    const { nodes, edges } = get();
+
+    // Delete only the specified node, not its children
+    // Remove all edges that have this node as source or target
+    set({
+      nodes: nodes.filter((node) => node.id !== id),
+      edges: edges.filter(
+        (edge) => edge.source !== id && edge.target !== id
+      ),
+      isDirty: true,
+    });
+    get().pushHistory();
+  },
+
   addEdge: (edge) => {
     const { edges } = get();
     set({ edges: [...edges, edge], isDirty: true });

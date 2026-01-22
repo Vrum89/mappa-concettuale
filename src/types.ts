@@ -43,6 +43,7 @@ export interface AppState {
   addNode: (node: ConceptNode) => void;
   updateNode: (id: string, data: Partial<ConceptNodeData>) => void;
   deleteNode: (id: string) => void;
+  deleteNodeOnly: (id: string) => void;
   addEdge: (edge: ConceptEdge) => void;
   updateEdge: (id: string, data: Partial<ConceptEdgeData>) => void;
   deleteEdge: (id: string) => void;

@@ -2,16 +2,20 @@ import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { ConceptNodeData } from '../types';
 import { useStore } from '../store';
+import DeleteConfirmDialog from './DeleteConfirmDialog';
 import './ConceptNode.css';
 
 function ConceptNode({ id, data, selected }: NodeProps<ConceptNodeData>) {
   const [isHovered, setIsHovered] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const updateNode = useStore((state) => state.updateNode);
   const deleteNode = useStore((state) => state.deleteNode);
+  const deleteNodeOnly = useStore((state) => state.deleteNodeOnly);
   const addNode = useStore((state) => state.addNode);
   const addEdge = useStore((state) => state.addEdge);
   const nodes = useStore((state) => state.nodes);
+  const edges = useStore((state) => state.edges);
   const pushHistory = useStore((state) => state.pushHistory);
 
   useEffect(() => {
@@ -50,16 +54,16 @@ function ConceptNode({ id, data, selected }: NodeProps<ConceptNodeData>) {
       return;
     }
 
-    // Check if node has children
-    const hasChildren = nodes.some((node) => node.data.parentId === id);
-    if (hasChildren) {
-      const confirmed = window.confirm(
-        'Questo nodo ha dei figli. Eliminandolo verranno eliminati anche tutti i nodi figli. Continuare?'
-      );
-      if (!confirmed) return;
-    }
+    // Count children using edges
+    const childrenCount = edges.filter((edge) => edge.source === id).length;
 
-    deleteNode(id);
+    if (childrenCount > 0) {
+      // Has children - show dialog
+      setShowDeleteConfirm(true);
+    } else {
+      // No children - delete directly
+      deleteNode(id);
+    }
   };
 
   const handleAddChild = (e: React.MouseEvent) => {
@@ -151,6 +155,18 @@ function ConceptNode({ id, data, selected }: NodeProps<ConceptNodeData>) {
       )}
 
       <Handle type="source" position={Position.Bottom} />
+
+      {showDeleteConfirm && (
+        <DeleteConfirmDialog
+          nodeLabel={data.label}
+          childCount={edges.filter((edge) => edge.source === id).length}
+          onCancel={() => setShowDeleteConfirm(false)}
+          onConfirmDeleteOnly={() => {
+            deleteNodeOnly(id);
+            setShowDeleteConfirm(false);
+          }}
+        />
+      )}
     </div>
   );
 }

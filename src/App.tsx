@@ -18,6 +18,7 @@ import ConceptEdge from './components/ConceptEdge';
 import Toolbar from './components/Toolbar';
 import MapManager from './components/MapManager';
 import HelpDialog from './components/HelpDialog';
+import DeleteConfirmDialog from './components/DeleteConfirmDialog';
 import { useStore } from './store';
 import './App.css';
 
@@ -47,6 +48,11 @@ function FlowCanvas() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showMapManager, setShowMapManager] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [deleteConfirmState, setDeleteConfirmState] = useState<{
+    nodeId: string;
+    nodeLabel: string;
+    childCount: number;
+  } | null>(null);
 
   // Handle node changes from React Flow (drag, position, etc.)
   const onNodesChange = useCallback(
@@ -182,18 +188,24 @@ function FlowCanvas() {
           return;
         }
 
-        const hasChildren = nodes.some(
-          (node) => node.data.parentId === selectedNodeId
-        );
-        if (hasChildren) {
-          const confirmed = window.confirm(
-            'Questo nodo ha dei figli. Eliminandolo verranno eliminati anche tutti i nodi figli. Continuare?'
-          );
-          if (!confirmed) return;
-        }
+        // Count children using edges
+        const childrenCount = edges.filter(
+          (edge) => edge.source === selectedNodeId
+        ).length;
 
-        deleteNode(selectedNodeId);
-        setSelectedNodeId(null);
+        if (childrenCount > 0) {
+          // Has children - show dialog
+          const node = nodes.find((n) => n.id === selectedNodeId);
+          setDeleteConfirmState({
+            nodeId: selectedNodeId,
+            nodeLabel: node?.data.label || 'Senza nome',
+            childCount: childrenCount,
+          });
+        } else {
+          // No children - delete directly
+          deleteNode(selectedNodeId);
+          setSelectedNodeId(null);
+        }
       }
 
       // Esc - Deselect
@@ -262,6 +274,20 @@ function FlowCanvas() {
 
       {showMapManager && <MapManager onClose={() => setShowMapManager(false)} />}
       {showHelp && <HelpDialog onClose={() => setShowHelp(false)} />}
+      {deleteConfirmState && (
+        <DeleteConfirmDialog
+          nodeLabel={deleteConfirmState.nodeLabel}
+          childCount={deleteConfirmState.childCount}
+          onCancel={() => {
+            setDeleteConfirmState(null);
+          }}
+          onConfirmDeleteOnly={() => {
+            useStore.getState().deleteNodeOnly(deleteConfirmState.nodeId);
+            setDeleteConfirmState(null);
+            setSelectedNodeId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

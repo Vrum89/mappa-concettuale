@@ -1,0 +1,76 @@
+.delete-confirm-dialog {
+  min-width: 450px;
+  max-width: 500px;
+}
+
+.delete-confirm-dialog h3 {
+  color: #f44336;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-confirm-dialog .modal-content {
+  margin-bottom: 24px;
+}
+
+.delete-confirm-dialog p {
+  margin: 0 0 12px 0;
+  color: #333333;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.delete-confirm-dialog .info-text {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  border-left: 3px solid #2196F3;
+  font-size: 13px;
+  color: #666666;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.delete-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-actions .icon {
+  font-size: 16px;
+}
+
+.btn-cancel {
+  background: #f0f0f0;
+  color: #333333;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+.btn-delete {
+  background: #f44336;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
