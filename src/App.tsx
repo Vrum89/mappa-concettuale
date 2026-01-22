@@ -4,10 +4,12 @@ import ReactFlow, {
   Controls,
   MiniMap,
   Connection,
-  useNodesState,
-  useEdgesState,
   BackgroundVariant,
   ReactFlowProvider,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -28,49 +30,41 @@ const edgeTypes = {
 };
 
 function FlowCanvas() {
-  const { nodes: storeNodes, edges: storeEdges, setNodes, setEdges } = useStore();
-  const [nodes, , onNodesChange] = useNodesState(storeNodes);
-  const [edges, , onEdgesChange] = useEdgesState(storeEdges);
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    addEdge,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    updateNode,
+    deleteNode,
+  } = useStore();
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showMapManager, setShowMapManager] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const { undo, redo, canUndo, canRedo, updateNode, deleteNode } = useStore();
+  // Handle node changes from React Flow (drag, position, etc.)
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes(applyNodeChanges(changes, nodes));
+    },
+    [nodes, setNodes]
+  );
 
-  // Sync local state with store
-  useEffect(() => {
-    onNodesChange(
-      storeNodes.map((node) => ({
-        item: node,
-        type: 'reset',
-        id: node.id,
-      }))
-    );
-  }, [storeNodes, onNodesChange]);
+  // Handle edge changes from React Flow
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges(applyEdgeChanges(changes, edges));
+    },
+    [edges, setEdges]
+  );
 
-  useEffect(() => {
-    onEdgesChange(
-      storeEdges.map((edge) => ({
-        item: edge,
-        type: 'reset',
-        id: edge.id,
-      }))
-    );
-  }, [storeEdges, onEdgesChange]);
-
-  // Update store when nodes/edges change
-  useEffect(() => {
-    if (JSON.stringify(nodes) !== JSON.stringify(storeNodes)) {
-      setNodes(nodes);
-    }
-  }, [nodes, storeNodes, setNodes]);
-
-  useEffect(() => {
-    if (JSON.stringify(edges) !== JSON.stringify(storeEdges)) {
-      setEdges(edges);
-    }
-  }, [edges, storeEdges, setEdges]);
-
+  // Handle new edge connections
   const onConnect = useCallback(
     (params: Connection) => {
       if (!params.source || !params.target) return;
@@ -82,9 +76,9 @@ function FlowCanvas() {
         type: 'concept',
         data: { label: '', isEditing: false },
       };
-      onEdgesChange([{ item: newEdge, type: 'add' }]);
+      addEdge(newEdge);
     },
-    [onEdgesChange]
+    [addEdge]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: { id: string }) => {
@@ -141,10 +135,10 @@ function FlowCanvas() {
       if (e.key === 'Tab' && selectedNodeId) {
         e.preventDefault();
         const newId = `node_${Date.now()}`;
-        const currentNode = storeNodes.find((n) => n.id === selectedNodeId);
+        const currentNode = nodes.find((n) => n.id === selectedNodeId);
         if (!currentNode) return;
 
-        const childrenCount = storeNodes.filter(
+        const childrenCount = nodes.filter(
           (n) => n.data.parentId === selectedNodeId
         ).length;
         const offsetY = 150;
@@ -188,7 +182,7 @@ function FlowCanvas() {
           return;
         }
 
-        const hasChildren = storeNodes.some(
+        const hasChildren = nodes.some(
           (node) => node.data.parentId === selectedNodeId
         );
         if (hasChildren) {
@@ -206,12 +200,12 @@ function FlowCanvas() {
       if (e.key === 'Escape') {
         setSelectedNodeId(null);
         // Cancel all editing
-        storeNodes.forEach((node) => {
+        nodes.forEach((node) => {
           if (node.data.isEditing) {
             updateNode(node.id, { isEditing: false });
           }
         });
-        storeEdges.forEach((edge) => {
+        edges.forEach((edge) => {
           if (edge.data?.isEditing) {
             useStore.getState().updateEdge(edge.id, { isEditing: false });
           }
@@ -223,8 +217,8 @@ function FlowCanvas() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     selectedNodeId,
-    storeNodes,
-    storeEdges,
+    nodes,
+    edges,
     undo,
     redo,
     canUndo,
