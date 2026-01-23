@@ -6,6 +6,10 @@ import ReactFlow, {
   Connection,
   BackgroundVariant,
   ReactFlowProvider,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -42,62 +46,23 @@ function FlowCanvas() {
   const [showMapManager, setShowMapManager] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  // Handle node changes from ReactFlow (like drag)
+  // Handle node changes from ReactFlow (like drag, dimensions, etc.)
   const onNodesChange = useCallback(
-    (changes: any[]) => {
-      const updatedNodes = [...nodes];
-      let hasChanges = false;
-
-      changes.forEach((change) => {
-        if (change.type === 'position' && change.dragging === false) {
-          // Position update after drag ends
-          const nodeIndex = updatedNodes.findIndex((n) => n.id === change.id);
-          if (nodeIndex !== -1 && change.position) {
-            updatedNodes[nodeIndex] = {
-              ...updatedNodes[nodeIndex],
-              position: change.position,
-            };
-            hasChanges = true;
-          }
-        } else if (change.type === 'position' && change.position) {
-          // Position update during drag
-          const nodeIndex = updatedNodes.findIndex((n) => n.id === change.id);
-          if (nodeIndex !== -1) {
-            updatedNodes[nodeIndex] = {
-              ...updatedNodes[nodeIndex],
-              position: change.position,
-            };
-            hasChanges = true;
-          }
-        }
-      });
-
-      if (hasChanges) {
-        setNodes(updatedNodes);
-      }
+    (changes: NodeChange[]) => {
+      // Use ReactFlow's applyNodeChanges to properly handle all changes
+      // This preserves internal ReactFlow properties like measured, width, height
+      const updatedNodes = applyNodeChanges(changes, nodes);
+      setNodes(updatedNodes);
     },
     [nodes, setNodes]
   );
 
   // Handle edge changes from ReactFlow
   const onEdgesChange = useCallback(
-    (changes: any[]) => {
-      const updatedEdges = [...edges];
-      let hasChanges = false;
-
-      changes.forEach((change) => {
-        if (change.type === 'remove') {
-          const edgeIndex = updatedEdges.findIndex((e) => e.id === change.id);
-          if (edgeIndex !== -1) {
-            updatedEdges.splice(edgeIndex, 1);
-            hasChanges = true;
-          }
-        }
-      });
-
-      if (hasChanges) {
-        setEdges(updatedEdges);
-      }
+    (changes: EdgeChange[]) => {
+      // Use ReactFlow's applyEdgeChanges to properly handle all changes
+      const updatedEdges = applyEdgeChanges(changes, edges);
+      setEdges(updatedEdges);
     },
     [edges, setEdges]
   );
